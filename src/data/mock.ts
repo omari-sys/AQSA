@@ -1,7 +1,17 @@
 // Mock data for standalone UI. Replace with API when connecting to BE.
-// بلاد الداخل = regions, each has cities, each city has buses
+// بلاد الداخل = regions (countries/areas), each has cities (villages), each city has buses
 
 export type BusStatus = "preparing" | "departed" | "on_the_way" | "returned" | "finished";
+
+export type AdminRole = "super_admin" | "region_admin";
+
+export interface AdminUser {
+  _id: string;
+  username: string;
+  role: AdminRole;
+  regionId?: string; // for region_admin
+  passwordHash?: string; // mock: plain stored for demo only
+}
 
 export interface Region {
   _id: string;
@@ -14,6 +24,11 @@ export interface City {
   regionId: string;
   nameAr: string;
   nameEn: string;
+}
+
+export interface UserLocation {
+  regionId: string;
+  cityId?: string;
 }
 
 export interface Bus {
@@ -136,6 +151,10 @@ let MOCK_BUSES_LIST: Bus[] = buildBuses();
 
 const STORAGE_BUSES = "aqsa-visit-mock-buses";
 const STORAGE_RESERVATIONS = "aqsa-visit-mock-reservations";
+const STORAGE_REGIONS = "aqsa-visit-mock-regions";
+const STORAGE_CITIES = "aqsa-visit-mock-cities";
+const STORAGE_ADMINS = "aqsa-visit-mock-admins";
+const STORAGE_USER_LOCATION = "aqsa-visit-user-location";
 
 function loadBusesFromStorage(): Bus[] {
   if (typeof window === "undefined") return MOCK_BUSES_LIST;
@@ -144,10 +163,12 @@ function loadBusesFromStorage(): Bus[] {
     if (!raw) return MOCK_BUSES_LIST;
     const parsed = JSON.parse(raw) as Bus[];
     if (Array.isArray(parsed) && parsed.length > 0) {
+      const citiesMap = getCitiesMap();
+      const regionsMap = getRegionsMap();
       MOCK_BUSES_LIST = parsed.map((b) => ({
         ...b,
-        city: CITIES_MAP[b.city._id] ?? b.city,
-        region: REGIONS_MAP[b.region?._id ?? b.city.regionId] ?? b.region,
+        city: citiesMap[b.city._id] ?? b.city,
+        region: regionsMap[b.region?._id ?? b.city.regionId] ?? b.region,
       }));
     }
     return MOCK_BUSES_LIST;
@@ -228,13 +249,207 @@ export function addMockReservation(input: {
   return reservation;
 }
 
+function loadRegionsFromStorage(): Region[] {
+  if (typeof window === "undefined") return REGIONS;
+  try {
+    const raw = localStorage.getItem(STORAGE_REGIONS);
+    if (!raw) return REGIONS;
+    const parsed = JSON.parse(raw) as Region[];
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : REGIONS;
+  } catch {
+    return REGIONS;
+  }
+}
+
+function saveRegionsToStorage(regions: Region[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_REGIONS, JSON.stringify(regions));
+  } catch {}
+}
+
+function loadCitiesFromStorage(): City[] {
+  if (typeof window === "undefined") return CITIES;
+  try {
+    const raw = localStorage.getItem(STORAGE_CITIES);
+    if (!raw) return CITIES;
+    const parsed = JSON.parse(raw) as City[];
+    return Array.isArray(parsed) ? parsed : CITIES;
+  } catch {
+    return CITIES;
+  }
+}
+
+function saveCitiesToStorage(cities: City[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_CITIES, JSON.stringify(cities));
+  } catch {}
+}
+
 export function getMockRegions(): Region[] {
-  return [...REGIONS];
+  return loadRegionsFromStorage();
 }
 
 export function getMockCities(regionId?: string): City[] {
-  if (regionId) return CITIES.filter((c) => c.regionId === regionId);
-  return [...CITIES];
+  const cities = loadCitiesFromStorage();
+  if (regionId) return cities.filter((c) => c.regionId === regionId);
+  return [...cities];
+}
+
+function getCitiesMap(): Record<string, City> {
+  const cities = loadCitiesFromStorage();
+  return Object.fromEntries(cities.map((c) => [c._id, c]));
+}
+
+function getRegionsMap(): Record<string, Region> {
+  const regions = loadRegionsFromStorage();
+  return Object.fromEntries(regions.map((r) => [r._id, r]));
+}
+
+export function addMockRegion(input: { nameAr: string; nameEn: string }): Region {
+  const regions = loadRegionsFromStorage();
+  const id = `r-${Date.now()}`;
+  const region: Region = { _id: id, nameAr: input.nameAr.trim(), nameEn: input.nameEn.trim() };
+  regions.push(region);
+  saveRegionsToStorage(regions);
+  return region;
+}
+
+export function updateMockRegion(id: string, input: { nameAr?: string; nameEn?: string }): Region | null {
+  const regions = loadRegionsFromStorage();
+  const idx = regions.findIndex((r) => r._id === id);
+  if (idx < 0) return null;
+  if (input.nameAr !== undefined) regions[idx].nameAr = input.nameAr.trim();
+  if (input.nameEn !== undefined) regions[idx].nameEn = input.nameEn.trim();
+  saveRegionsToStorage(regions);
+  return regions[idx];
+}
+
+export function deleteMockRegion(id: string): boolean {
+  const regions = loadRegionsFromStorage();
+  const filtered = regions.filter((r) => r._id !== id);
+  if (filtered.length === regions.length) return false;
+  saveRegionsToStorage(filtered);
+  const cities = loadCitiesFromStorage().filter((c) => c.regionId !== id);
+  saveCitiesToStorage(cities);
+  return true;
+}
+
+export function addMockCity(input: { regionId: string; nameAr: string; nameEn: string }): City {
+  const cities = loadCitiesFromStorage();
+  const id = `c-${Date.now()}`;
+  const city: City = {
+    _id: id,
+    regionId: input.regionId,
+    nameAr: input.nameAr.trim(),
+    nameEn: input.nameEn.trim(),
+  };
+  cities.push(city);
+  saveCitiesToStorage(cities);
+  return city;
+}
+
+export function updateMockCity(id: string, input: { regionId?: string; nameAr?: string; nameEn?: string }): City | null {
+  const cities = loadCitiesFromStorage();
+  const idx = cities.findIndex((c) => c._id === id);
+  if (idx < 0) return null;
+  if (input.regionId !== undefined) cities[idx].regionId = input.regionId;
+  if (input.nameAr !== undefined) cities[idx].nameAr = input.nameAr.trim();
+  if (input.nameEn !== undefined) cities[idx].nameEn = input.nameEn.trim();
+  saveCitiesToStorage(cities);
+  return cities[idx];
+}
+
+export function deleteMockCity(id: string): boolean {
+  const cities = loadCitiesFromStorage();
+  const filtered = cities.filter((c) => c._id !== id);
+  if (filtered.length === cities.length) return false;
+  saveCitiesToStorage(filtered);
+  return true;
+}
+
+// Sub-admins
+const DEFAULT_ADMINS: AdminUser[] = [
+  { _id: "admin-1", username: "admin", role: "super_admin" },
+  { _id: "admin-2", username: "nazareth_admin", role: "region_admin", regionId: "r5", passwordHash: "naz123" },
+];
+
+function loadAdminsFromStorage(): AdminUser[] {
+  if (typeof window === "undefined") return DEFAULT_ADMINS;
+  try {
+    const raw = localStorage.getItem(STORAGE_ADMINS);
+    if (!raw) return DEFAULT_ADMINS;
+    const parsed = JSON.parse(raw) as AdminUser[];
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_ADMINS;
+  } catch {
+    return DEFAULT_ADMINS;
+  }
+}
+
+function saveAdminsToStorage(admins: AdminUser[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_ADMINS, JSON.stringify(admins));
+  } catch {}
+}
+
+export function getMockAdmins(): AdminUser[] {
+  return loadAdminsFromStorage();
+}
+
+export function addMockAdmin(input: { username: string; password: string; role: AdminRole; regionId?: string }): AdminUser {
+  const admins = loadAdminsFromStorage();
+  const id = `admin-${Date.now()}`;
+  const user: AdminUser = {
+    _id: id,
+    username: input.username.trim(),
+    role: input.role,
+    regionId: input.role === "region_admin" ? input.regionId : undefined,
+    passwordHash: input.password,
+  };
+  admins.push(user);
+  saveAdminsToStorage(admins);
+  return user;
+}
+
+export function updateMockAdminPassword(id: string, newPassword: string): boolean {
+  const admins = loadAdminsFromStorage();
+  const idx = admins.findIndex((a) => a._id === id);
+  if (idx < 0) return false;
+  admins[idx].passwordHash = newPassword;
+  saveAdminsToStorage(admins);
+  return true;
+}
+
+export function deleteMockAdmin(id: string): boolean {
+  const admins = loadAdminsFromStorage();
+  const filtered = admins.filter((a) => a._id !== id);
+  if (filtered.length === admins.length) return false;
+  saveAdminsToStorage(filtered);
+  return true;
+}
+
+// User location (region/city) persistence
+export function getUserLocation(): UserLocation | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_USER_LOCATION);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as UserLocation;
+    if (parsed?.regionId) return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function setUserLocation(loc: UserLocation | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (loc) localStorage.setItem(STORAGE_USER_LOCATION, JSON.stringify(loc));
+    else localStorage.removeItem(STORAGE_USER_LOCATION);
+  } catch {}
 }
 
 export function getMockBusesAll(): Bus[] {
@@ -273,8 +488,10 @@ export function addMockBus(input: {
   totalSeats: number;
   driverName: string;
 }): Bus {
-  const city = CITIES.find((c) => c._id === input.cityId);
-  const region = city ? REGIONS_MAP[city.regionId] : undefined;
+  const cities = loadCitiesFromStorage();
+  const regionsMap = getRegionsMap();
+  const city = cities.find((c) => c._id === input.cityId);
+  const region = city ? regionsMap[city.regionId] : undefined;
   if (!city || !region) throw new Error("City not found");
   const bus: Bus = {
     _id: `b-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,

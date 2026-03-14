@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
   getMockRegions,
   getMockCities,
   getMockBuses,
+  getUserLocation,
+  setUserLocation,
   type Bus,
   type Region,
   type City,
@@ -27,7 +29,7 @@ function formatDate(iso: string) {
   });
 }
 
-const AQSA_IMAGE = "https://images.unsplash.com/photo-1548013146-72479768bada?w=1200&q=80";
+const AQSA_IMAGE = "https://lh3.googleusercontent.com/gps-cs-s/AHVAweppKA0MXKLbjZikk5HqyWTeD3M38KD-KnYzc9BD14O8T8NTKnutDF2PvR-Bm-uEGpcRqJCsqJ-B5ww66EzS_SYXXClhxmaRgicFSCTYRWcawiTonHbrzWZRrXVmhZ_rCv9ri43xTA=s1360-w1360-h1020-rw";
 
 function BusCard({ bus }: { bus: Bus }) {
   return (
@@ -83,6 +85,35 @@ export default function Home() {
       }),
     [selectedRegionId, selectedCityId]
   );
+
+  useEffect(() => {
+    const saved = getUserLocation();
+    if (!saved?.regionId) return;
+    const regionExists = regions.some((r) => r._id === saved.regionId);
+    if (!regionExists) return;
+    setSelectedRegionId(saved.regionId);
+    if (saved.cityId) {
+      const allCities = getMockCities(saved.regionId);
+      const cityExists = allCities.some((c) => c._id === saved.cityId);
+      if (cityExists) setSelectedCityId(saved.cityId);
+    }
+  }, [regions]);
+
+  const handleRegionChange = (regionId: string) => {
+    setSelectedRegionId(regionId);
+    setSelectedCityId("");
+    setUserLocation(regionId ? { regionId, cityId: undefined } : null);
+  };
+
+  const handleCityChange = (cityId: string) => {
+    setSelectedCityId(cityId);
+    if (selectedRegionId) {
+      setUserLocation({
+        regionId: selectedRegionId,
+        cityId: cityId || undefined,
+      });
+    }
+  };
 
   return (
     <div className="space-y-10">
@@ -147,10 +178,7 @@ export default function Home() {
             </label>
             <select
               value={selectedRegionId}
-              onChange={(e) => {
-                setSelectedRegionId(e.target.value);
-                setSelectedCityId("");
-              }}
+              onChange={(e) => handleRegionChange(e.target.value)}
               className="w-full rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-stone-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
             >
               <option value="">كل المناطق</option>
@@ -167,7 +195,7 @@ export default function Home() {
             </label>
             <select
               value={selectedCityId}
-              onChange={(e) => setSelectedCityId(e.target.value)}
+              onChange={(e) => handleCityChange(e.target.value)}
               className="w-full rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-stone-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
             >
               <option value="">كل المدن</option>
@@ -197,10 +225,7 @@ export default function Home() {
             <p className="text-sm text-stone-400 mt-1">جرّب تغيير المنطقة أو المدينة</p>
             <button
               type="button"
-              onClick={() => {
-                setSelectedRegionId("");
-                setSelectedCityId("");
-              }}
+              onClick={() => handleRegionChange("")}
               className="mt-4 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
             >
               عرض كل الرحلات

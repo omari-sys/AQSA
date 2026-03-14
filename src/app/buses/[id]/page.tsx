@@ -9,7 +9,7 @@ import {
   addMockReservation,
 } from "@/data/mock";
 
-const AQSA_IMAGE = "https://images.unsplash.com/photo-1548013146-72479768bada?w=800&q=80";
+const AQSA_IMAGE = "https://lh3.googleusercontent.com/gps-cs-s/AHVAweppKA0MXKLbjZikk5HqyWTeD3M38KD-KnYzc9BD14O8T8NTKnutDF2PvR-Bm-uEGpcRqJCsqJ-B5ww66EzS_SYXXClhxmaRgicFSCTYRWcawiTonHbrzWZRrXVmhZ_rCv9ri43xTA=s1360-w1360-h1020-rw";
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("ar-EG", {
