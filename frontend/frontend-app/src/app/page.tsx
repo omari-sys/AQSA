@@ -30,7 +30,7 @@ export default function Home() {
               className="font-medium text-zinc-950 dark:text-zinc-50"
             >
               Learning
-            </a>{" "}
+            </a>
             center.
           </p>
         </div>
