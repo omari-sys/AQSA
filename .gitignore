@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment (never commit secrets)
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+backend/dist/
+frontend/frontend-app/.next/
+frontend/frontend-app/out/
+frontend/frontend-app/build/
+
+# IDE / OS
+.DS_Store
+*.log
+*.tsbuildinfo
+
+# Next.js
+.next/
+.vercel
