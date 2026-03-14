@@ -1,0 +1,13 @@
+import mongoose from "mongoose";
+import { env } from "./env";
+
+export async function connectDatabase() {
+  try {
+    await mongoose.connect(env.mongoUri);
+    console.log("✅ Connected to MongoDB");
+  } catch (error) {
+    console.error("❌ Failed to connect to MongoDB", error);
+    process.exit(1);
+  }
+}
+
