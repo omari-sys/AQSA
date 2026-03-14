@@ -32,6 +32,8 @@ export interface Reservation {
   _id: string;
   bus: Bus;
   seats: number;
+  userName: string;
+  userPhone?: string;
   createdAt: string;
 }
 
@@ -202,16 +204,23 @@ export function getBusAvailableSeats(bus: Bus): number {
   return Math.max(0, bus.totalSeats - reserved);
 }
 
-export function addMockReservation(busId: string, seats: number): Reservation | null {
+export function addMockReservation(input: {
+  busId: string;
+  seats: number;
+  userName: string;
+  userPhone?: string;
+}): Reservation | null {
   const buses = getMockBusesAll();
-  const bus = buses.find((b) => b._id === busId);
+  const bus = buses.find((b) => b._id === input.busId);
   if (!bus) return null;
   const available = getBusAvailableSeats(bus);
-  if (available < seats) return null;
+  if (available < input.seats) return null;
   const reservation: Reservation = {
     _id: `res-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     bus,
-    seats,
+    seats: input.seats,
+    userName: input.userName.trim(),
+    userPhone: input.userPhone?.trim(),
     createdAt: new Date().toISOString(),
   };
   inMemoryReservations = [...getMockReservations(), reservation];

@@ -13,9 +13,9 @@ function formatTime(iso: string) {
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("ar-EG", {
-    weekday: "short",
+    weekday: "long",
     day: "numeric",
-    month: "short",
+    month: "long",
   });
 }
 
@@ -25,55 +25,70 @@ export default function ReservationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-stone-900">حجوزاتي</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-stone-900">حجوزاتي</h1>
+          <p className="mt-1 text-stone-600">جميع حجوزاتك للرحلات إلى الأقصى</p>
+        </div>
         <button
           type="button"
           onClick={() => setKey((k) => k + 1)}
-          className="text-sm text-emerald-600 hover:underline"
+          className="rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors"
         >
           تحديث
         </button>
       </div>
 
-      <p className="text-stone-600">
-        الحجوزات محفوظة في هذا المتصفح (بيانات تجريبية). عند ربط الباك-اند ستُحمّل من السيرفر.
+      <p className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-sm text-stone-600">
+        الحجوزات محفوظة في هذا المتصفح. عند ربط الباك-اند ستُحمّل من السيرفر.
       </p>
 
       {reservations.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-stone-300 bg-stone-50/50 py-12 text-center">
-          <p className="text-stone-600">لا توجد حجوزات.</p>
+        <div className="rounded-2xl border-2 border-dashed border-stone-200 bg-white py-16 text-center">
+          <p className="text-stone-600 text-lg">لا توجد حجوزات.</p>
+          <p className="mt-1 text-stone-500 text-sm">احجز رحلتك الأولى إلى الأقصى</p>
           <Link
             href="/"
-            className="mt-3 inline-block font-medium text-emerald-700 hover:underline"
+            className="mt-6 inline-block rounded-xl bg-emerald-600 px-6 py-3 font-medium text-white hover:bg-emerald-700 transition-colors"
           >
-            تصفح الرحلات ←
+            تصفح الرحلات
           </Link>
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-4">
           {reservations.map((r) => (
             <li
               key={r._id}
-              className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm"
+              className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium text-stone-900">
-                    {r.bus.city?.nameAr ?? r.bus.city?.nameEn ?? "—"} ({r.bus.region?.nameAr ?? "—"}) — {r.seats} {r.seats === 1 ? "مقعد" : "مقاعد"}
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                    <span className="font-bold text-stone-900 text-lg">
+                      {r.userName ?? "ضيف"}
+                    </span>
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800">
+                      مؤكد
+                    </span>
+                  </div>
+                  <p className="font-medium text-stone-800">
+                    {r.bus.city?.nameAr ?? r.bus.city?.nameEn ?? "—"} ({r.bus.region?.nameAr ?? "—"})
                   </p>
-                  <p className="text-sm text-stone-500">
-                    {formatDate(r.bus.departureTime)} ·{" "}
-                    {formatTime(r.bus.departureTime)} →{" "}
-                    {formatTime(r.bus.returnTime)}
+                  <p className="text-stone-600 mt-0.5">
+                    {r.seats} {r.seats === 1 ? "مقعد" : "مقاعد"}
                   </p>
-                  <p className="mt-1 text-xs text-stone-400">
+                  <p className="text-sm text-stone-500 mt-2">
+                    {formatDate(r.bus.departureTime)} · {formatTime(r.bus.departureTime)} — {formatTime(r.bus.returnTime)}
+                  </p>
+                  <p className="text-xs text-stone-400 mt-1">
                     السائق: {r.bus.driverName} · تم الحجز {formatDate(r.createdAt)}
                   </p>
+                  {r.userPhone && (
+                    <p className="text-xs text-stone-500 mt-1">
+                      هاتف: {r.userPhone}
+                    </p>
+                  )}
                 </div>
-                <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800">
-                  مؤكد
-                </span>
               </div>
             </li>
           ))}
